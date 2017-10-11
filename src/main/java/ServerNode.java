@@ -54,9 +54,10 @@ public class ServerNode {
     public static void setupCustomIp(IgniteConfiguration cfg) {
         final TcpDiscoverySpi spi = new TcpDiscoverySpi();
         final TcpDiscoveryVmIpFinder finder = new TcpDiscoveryVmIpFinder();
-        finder.setAddresses(Collections.singletonList("127.0.0.1:33333"));
+        finder.setAddresses(Collections.singletonList("127.0.0.1:33333..33339"));
         spi.setIpFinder(finder);
         spi.setLocalPort(33333);
+        spi.setLocalPortRange(6);
         cfg.setDiscoverySpi(spi);
     }
 }
