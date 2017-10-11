@@ -27,11 +27,8 @@ public class ServerNode {
         cfg.setCacheConfiguration(c2);
         try (final Ignite ignite = Ignition.start(cfg)) {
 
-            ignite.message(ignite.cluster().forRemotes()).localListen(
-               ORDER_STREAMER_TOPIC, (uuid, e)->{
-                    initialLoad(ignite);
-                    return false; // stop listening
-                });
+            initialLoad(ignite);
+
             System.out.println("Press any key to shutdown server");
             System.in.read();
         }

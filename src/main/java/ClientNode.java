@@ -15,8 +15,6 @@ public class ClientNode {
         ServerNode.setupCustomIp(cfg);
         cfg.setClientMode(true);
         try (final Ignite ignite = Ignition.start(cfg)) {
-            final ClusterGroup grp = ignite.cluster().forServers().forRandom();
-            ignite.message(grp).send("OrderStreamer", "Start");
 
             final IgniteCache<Object, Object> orders = ignite.cache(ServerNode.ORDERS);
             System.out.println("Cache size is " + orders.size());
