@@ -16,7 +16,7 @@ public class ClientNode {
         try (final Ignite ignite = Ignition.start(cfg)) {
             final IgniteCache<Object, Object> orders = ignite.cache(ServerNode.ORDERS);
 
-            final IgniteCompute compute = ignite.compute();
+            System.out.println("Cache size is " + orders.size());
             System.out.println("Press any key to close client");
             System.in.read();
         }

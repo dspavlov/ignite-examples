@@ -1,9 +1,7 @@
 import java.io.IOException;
 import java.util.Collections;
 import java.util.concurrent.ThreadLocalRandom;
-import java.util.stream.IntStream;
 import org.apache.ignite.Ignite;
-import org.apache.ignite.IgniteDataStreamer;
 import org.apache.ignite.Ignition;
 import org.apache.ignite.configuration.CacheConfiguration;
 import org.apache.ignite.configuration.IgniteConfiguration;
@@ -34,13 +32,7 @@ public class ServerNode {
     private static void initialLoad(Ignite ignite) {
         final ThreadLocalRandom tlr = ThreadLocalRandom.current();
         if (ignite.cache(ORDERS).size() == 0) {
-            final IgniteDataStreamer<Object, Object> streamer = ignite.dataStreamer(ORDERS);
-            IntStream.range(0, 1000000)
-                .forEach(
-                    i -> {
-                        streamer.addData(i, "Order-" + i + "-" + tlr.nextInt());
-                    }
-                );
+
         }
     }
 
