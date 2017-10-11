@@ -16,6 +16,7 @@ import org.apache.ignite.spi.discovery.tcp.ipfinder.vm.TcpDiscoveryVmIpFinder;
 public class ServerNode {
 
     public static final String ORDERS = "Orders";
+    public static final String ORDER_STREAMER_TOPIC = "OrderStreamer";
 
     public static void main(String[] args) throws IOException {
         final IgniteConfiguration cfg = new IgniteConfiguration();
@@ -25,7 +26,12 @@ public class ServerNode {
         c2.setName(ORDERS);
         cfg.setCacheConfiguration(c2);
         try (final Ignite ignite = Ignition.start(cfg)) {
-            initialLoad(ignite);
+
+            ignite.message(ignite.cluster().forRemotes()).localListen(
+               ORDER_STREAMER_TOPIC, (uuid, e)->{
+                    initialLoad(ignite);
+                    return false; // stop listening
+                });
             System.out.println("Press any key to shutdown server");
             System.in.read();
         }
@@ -41,6 +47,7 @@ public class ServerNode {
                         streamer.addData(i, "Order-" + i + "-" + tlr.nextInt());
                     }
                 );
+            streamer.close();
         }
     }
 
