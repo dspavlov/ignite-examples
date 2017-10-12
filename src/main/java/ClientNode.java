@@ -14,17 +14,13 @@ public class ClientNode {
     public static void main(String[] args) throws IOException, InterruptedException {
         final IgniteConfiguration cfg = new IgniteConfiguration();
         ServerNode.setupCustomIp(cfg);
-        cfg.setIncludeEventTypes(EVT_NODE_JOINED);
 
         cfg.setClientMode(true);
         try (final Ignite ignite = Ignition.start(cfg)) {
+
+
             final ClusterGroup grp = ignite.cluster().forServers().forRandom();
             ignite.message(grp).send("OrderStreamer", "Start");
-
-            ignite.events().localListen(e->{
-                System.out.println("Node joined: " + e);
-                return true;
-            }, EVT_NODE_JOINED);
 
             final IgniteCache<Object, Object> orders = ignite.cache(ServerNode.ORDERS);
             System.out.println("Cache size is " + orders.size());
