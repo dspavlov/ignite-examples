@@ -31,6 +31,7 @@ public class ClientNode {
                 System.out.println("Node joined: " + e);
                 return true;
             }, EVT_NODE_JOINED);
+
             final IgniteCache<Object, Object> orders = ignite.cache(ServerNode.ORDERS);
             System.out.println("Cache size is " + orders.size());
 
@@ -41,27 +42,6 @@ public class ClientNode {
                 if (size >= 1000000)
                     break;
             }
-
-            //todo /*
-            final int partitions = ignite.affinity(ServerNode.ORDERS).partitions();
-            final List<Integer> parts = IntStream.range(0, partitions).boxed().collect(Collectors.toList());
-            final Integer result = ignite.compute().apply((p) -> {
-                System.err.println("Running job for partition " + p);
-                return p;
-            }, parts, new IgniteReducer<Integer, Integer>() {
-                public int cur;
-
-                @Override public boolean collect(@Nullable Integer integer) {
-                    cur = Math.max(integer, cur);
-                    return true;
-                }
-
-                @Override public Integer reduce() {
-                    return cur;
-                }
-            });
-            System.out.println("Max partition " + result);
-            // todo */
 
             System.out.println("Press any key to close client");
             System.in.read();
