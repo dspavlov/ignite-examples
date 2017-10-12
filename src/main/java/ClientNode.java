@@ -1,4 +1,6 @@
 import java.io.IOException;
+import java.util.Iterator;
+import javax.cache.Cache;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
 import org.apache.ignite.Ignition;
@@ -22,7 +24,7 @@ public class ClientNode {
             final ClusterGroup grp = ignite.cluster().forServers().forRandom();
             ignite.message(grp).send("OrderStreamer", "Start");
 
-            final IgniteCache<Object, Object> orders = ignite.cache(ServerNode.ORDERS);
+            final IgniteCache<Integer, Object> orders = ignite.cache(ServerNode.ORDERS);
             System.out.println("Cache size is " + orders.size());
 
             for (int i = 0; i < 10; i++) {
@@ -31,6 +33,11 @@ public class ClientNode {
                 System.out.println("Cache size is " + size);
                 if (size >= 1000000)
                     break;
+            }
+
+            for (Cache.Entry<Integer, Object> next : orders) {
+                if (next.getKey() % 1000 == 0)
+                    System.out.println(next.getKey());
             }
 
             System.out.println("Press any key to close client");
