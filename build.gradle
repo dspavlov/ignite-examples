@@ -10,4 +10,7 @@ repositories {
 
 dependencies {
     testCompile group: 'junit', name: 'junit', version: '4.12'
+
+    
+    compile group: 'org.apache.ignite', name: 'ignite-core', version: '2.2.0'
 }
