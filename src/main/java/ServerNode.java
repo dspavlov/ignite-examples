@@ -1,3 +1,4 @@
+import java.io.File;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.concurrent.ThreadLocalRandom;
@@ -19,8 +20,16 @@ public class ServerNode {
     public static final String ORDERS = "Orders";
     public static final String ORDER_STREAMER_TOPIC = "OrderStreamer";
 
+
+    public static final String DEVELOPER = "Developer";
+
     public static void main(String[] args) throws IOException {
         final IgniteConfiguration cfg = new IgniteConfiguration();
+
+        final PersistentStoreConfiguration pstCfg = new PersistentStoreConfiguration();
+        pstCfg.setPersistentStorePath(new File(".").getAbsolutePath());
+        cfg.setPersistentStoreConfiguration(pstCfg);
+
         setupCustomIp(cfg);
 
         final CacheConfiguration c2 = new CacheConfiguration();
@@ -28,8 +37,9 @@ public class ServerNode {
         cfg.setCacheConfiguration(c2);
         try (final Ignite ignite = Ignition.start(cfg)) {
 
-            initialLoad(ignite);
+           // initialLoad(ignite);
 
+            ignite.active(true);
             System.out.println("Press any key to shutdown server");
             System.in.read();
         }
