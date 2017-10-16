@@ -9,6 +9,11 @@ import org.apache.ignite.configuration.CacheConfiguration;
 import org.apache.ignite.configuration.IgniteConfiguration;
 import org.apache.ignite.spi.discovery.tcp.TcpDiscoverySpi;
 import org.apache.ignite.spi.discovery.tcp.ipfinder.vm.TcpDiscoveryVmIpFinder;
+import org.apache.ignite.spi.loadbalancing.roundrobin.RoundRobinLoadBalancingSpi;
+
+import static org.apache.ignite.events.EventType.EVT_JOB_MAPPED;
+import static org.apache.ignite.events.EventType.EVT_TASK_FAILED;
+import static org.apache.ignite.events.EventType.EVT_TASK_FINISHED;
 
 /**
  * Created by dpavlov on 11.10.2017
@@ -22,9 +27,12 @@ public class ServerNode {
         final IgniteConfiguration cfg = new IgniteConfiguration();
         setupCustomIp(cfg);
 
-        final CacheConfiguration c2 = new CacheConfiguration();
-        c2.setName(ORDERS);
-        cfg.setCacheConfiguration(c2);
+        setupLoadBalancing(cfg);
+
+        final CacheConfiguration ccfg = new CacheConfiguration();
+        ccfg.setName(ORDERS);
+        cfg.setCacheConfiguration(ccfg);
+
         try (final Ignite ignite = Ignition.start(cfg)) {
 
             ignite.message(ignite.cluster().forRemotes()).localListen(
@@ -35,6 +43,14 @@ public class ServerNode {
             System.out.println("Press any key to shutdown server");
             System.in.read();
         }
+    }
+
+    public static void setupLoadBalancing(IgniteConfiguration cfg) {
+        final RoundRobinLoadBalancingSpi loadBalancingSpi = new RoundRobinLoadBalancingSpi();
+        loadBalancingSpi.setPerTask(true);
+        cfg.setLoadBalancingSpi(loadBalancingSpi);
+
+        cfg.setIncludeEventTypes(EVT_TASK_FAILED, EVT_TASK_FINISHED, EVT_JOB_MAPPED);
     }
 
     private static void initialLoad(Ignite ignite) {

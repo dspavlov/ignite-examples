@@ -35,6 +35,8 @@ public class ClientNode {
 
             if(prime)
                 System.err.println("Found prime number: " + i);
+            else
+                System.err.println("Not prime " + i);
 
             return prime ? i : null;
         }, parms, new IgniteReducer<BigInteger, BigInteger>() {
@@ -59,11 +61,7 @@ public class ClientNode {
         final IgniteConfiguration cfg = new IgniteConfiguration();
         ServerNode.setupCustomIp(cfg);
 
-        //final RoundRobinLoadBalancingSpi loadBalancingSpi = new RoundRobinLoadBalancingSpi();
-      //  loadBalancingSpi.setPerTask(true);
-        cfg.setLoadBalancingSpi(new WeightedRandomLoadBalancingSpi());
-
-        cfg.setIncludeEventTypes(EVT_TASK_FAILED, EVT_TASK_FINISHED, EVT_JOB_MAPPED);
+        ServerNode.setupLoadBalancing(cfg);
 
         cfg.setClientMode(true);
         try (final Ignite ignite = Ignition.start(cfg)) {
