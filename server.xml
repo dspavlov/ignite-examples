@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:util="http://www.springframework.org/schema/util"
+       xsi:schemaLocation="
+        http://www.springframework.org/schema/beans
+        http://www.springframework.org/schema/beans/spring-beans.xsd
+        http://www.springframework.org/schema/util
+        http://www.springframework.org/schema/util/spring-util.xsd">
+    <bean id="ignite.cfg" class="org.apache.ignite.configuration.IgniteConfiguration">
+        <property name="peerClassLoadingEnabled" value="true"/>
+
+        <property name="gridLogger">
+            <bean class="org.apache.ignite.logger.log4j2.Log4J2Logger">
+                <constructor-arg type="java.lang.String"
+                                 value="log4j2.xml"/>
+            </bean>
+        </property>
+
+        <property name="persistentStoreConfiguration">
+            <bean class="org.apache.ignite.configuration.PersistentStoreConfiguration">
+                <property name="walMode" value="BACKGROUND"/>
+                <property name="walFlushFrequency" value="5000"/>
+            </bean>
+        </property>
+
+        <property name="memoryConfiguration">
+            <bean
+                class="org.apache.ignite.configuration.MemoryConfiguration">
+                <property name="defaultMemoryPolicySize" value="#{32L * 1024 * 1024 * 1024}"/>
+            </bean>
+        </property>
+
+        <property name="discoverySpi">
+            <bean
+                class="org.apache.ignite.spi.discovery.tcp.TcpDiscoverySpi">
+                <property name="localPort" value="33333"/>
+                <property name="localPortRange" value="6"/>
+                <property name="ipFinder">
+                    <bean
+                        class="org.apache.ignite.spi.discovery.tcp.ipfinder.vm.TcpDiscoveryVmIpFinder">
+                        <property name="addresses">
+                            <list><value>127.0.0.1:33333..33339</value></list>
+                        </property>
+                    </bean>
+                </property>
+            </bean>
+        </property>
+    </bean>
+</beans>
