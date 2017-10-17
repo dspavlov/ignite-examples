@@ -21,12 +21,15 @@
             <bean class="org.apache.ignite.configuration.PersistentStoreConfiguration">
                 <property name="walMode" value="BACKGROUND"/>
                 <property name="walFlushFrequency" value="5000"/>
+                <property name="walHistorySize" value="1"/>
+
+                <property name="checkpointingFrequency" value="600000"/>
+                <property name="checkpointingPageBufferSize" value="#{8L * 1024 * 1024 * 1024}"/>
             </bean>
         </property>
 
         <property name="memoryConfiguration">
-            <bean
-                class="org.apache.ignite.configuration.MemoryConfiguration">
+            <bean class="org.apache.ignite.configuration.MemoryConfiguration">
                 <property name="defaultMemoryPolicySize" value="#{32L * 1024 * 1024 * 1024}"/>
             </bean>
         </property>

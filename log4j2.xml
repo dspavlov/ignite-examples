@@ -11,7 +11,7 @@
         </Async>
     </Appenders>
     <Loggers>
-        <Root level="warning">
+        <Root level="warn">
             <AppenderRef ref="Async"/>
         </Root>
     </Loggers>
