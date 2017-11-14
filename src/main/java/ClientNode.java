@@ -1,26 +1,15 @@
-import java.io.IOException;
-import java.math.BigInteger;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.LongStream;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
 import org.apache.ignite.IgniteDataStreamer;
 import org.apache.ignite.Ignition;
-import org.apache.ignite.cache.CacheAtomicityMode;
-import org.apache.ignite.cache.CacheMode;
-import org.apache.ignite.cache.CacheWriteSynchronizationMode;
-import org.apache.ignite.cluster.ClusterGroup;
 import org.apache.ignite.configuration.CacheConfiguration;
 import org.apache.ignite.configuration.IgniteConfiguration;
-import org.apache.ignite.lang.IgniteReducer;
 import org.gridgain.grid.GridGain;
 import org.gridgain.grid.persistentstore.GridSnapshot;
 import org.gridgain.grid.persistentstore.SnapshotFuture;
 import org.gridgain.grid.persistentstore.SnapshotInfo;
-import org.jetbrains.annotations.Nullable;
 
 /**
  *
@@ -45,21 +34,18 @@ public class ClientNode {
 
             final GridSnapshot snapshot = gg.snapshot();
 
-            final CacheConfiguration<Object, Object> acntCcfg = new CacheConfiguration<>(ACCOUNT);
-            acntCcfg.setCacheMode(CacheMode.PARTITIONED);
-            acntCcfg.setAtomicityMode(CacheAtomicityMode.TRANSACTIONAL);
-            acntCcfg.setWriteSynchronizationMode(CacheWriteSynchronizationMode.PRIMARY_SYNC);
-            acntCcfg.setBackups(1);
+            final CacheConfiguration<Object, Account> acntCcfg = ServerNode.getAcntConfiguration();
 
-            final IgniteCache<Object, Object> cache = ignite.getOrCreateCache(acntCcfg);
+            final IgniteCache<Object, Account> cache = ignite.getOrCreateCache(acntCcfg);
 
             final int size = cache.size();
             if (size >= COUNT)
                 System.err.println("Accounts cache size is " + size);
             else {
                 System.err.println("Accounts to be filled: " + size);
-                initialLoad(ignite);
             }
+
+            initialLoad(ignite);
 
             snapshotsDemo(snapshot);
 
@@ -86,7 +72,7 @@ public class ClientNode {
             System.err.println("Snapshot created: " + o);
         }
 
-        boolean restore = true;
+        boolean restore = false;
         if (someSnId > 0 && restore) {
             snapshot.restoreSnapshot(someSnId, null, null)
                 .get();
@@ -95,11 +81,16 @@ public class ClientNode {
     }
 
     private static void initialLoad(Ignite ignite) {
+        long totalBalance = 1_000_000;
         try (IgniteDataStreamer<Integer, Account> streamer = ignite.dataStreamer(ACCOUNT)) {
             streamer.allowOverwrite(true);
 
             for (int i = 0; i < COUNT; i++) {
-                streamer.addData(i, new Account(i, "Organization-" + i));
+                final Account acnt = new Account(i, "Organization-" + i);
+                final long cur = i == COUNT - 1 ? totalBalance : (long)(Math.random() * totalBalance);
+                acnt.setBalance(cur);
+                totalBalance -= cur;
+                streamer.addData(i, acnt);
 
                 if (i > 0 && i % 1_000 == 0)
                     System.out.println("Done: " + i);

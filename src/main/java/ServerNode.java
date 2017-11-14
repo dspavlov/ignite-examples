@@ -6,6 +6,9 @@ import java.util.stream.IntStream;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteDataStreamer;
 import org.apache.ignite.Ignition;
+import org.apache.ignite.cache.CacheAtomicityMode;
+import org.apache.ignite.cache.CacheMode;
+import org.apache.ignite.cache.CacheWriteSynchronizationMode;
 import org.apache.ignite.cluster.ClusterNode;
 import org.apache.ignite.configuration.CacheConfiguration;
 import org.apache.ignite.configuration.IgniteConfiguration;
@@ -15,6 +18,7 @@ import org.apache.ignite.spi.discovery.tcp.ipfinder.vm.TcpDiscoveryVmIpFinder;
 import org.apache.ignite.spi.loadbalancing.roundrobin.RoundRobinLoadBalancingSpi;
 import org.gridgain.grid.GridGain;
 import org.gridgain.grid.persistentstore.SnapshotFuture;
+import org.jetbrains.annotations.NotNull;
 
 import static org.apache.ignite.events.EventType.EVT_JOB_MAPPED;
 import static org.apache.ignite.events.EventType.EVT_TASK_FAILED;
@@ -35,10 +39,13 @@ public class ServerNode {
 
         setupLoadBalancing(cfg);
 
+        cfg.setCacheConfiguration(getAcntConfiguration());
+
         cfg.setPersistentStoreConfiguration(new PersistentStoreConfiguration());
 
         try (final Ignite ignite = Ignition.start(cfg)) {
-            if ((long)ignite.cluster().forServers().nodes().size() >= 2) {
+            if (!ignite.active()
+                && ignite.cluster().forServers().nodes().size() >= 2) {
                 System.err.println("Activating cluster");
                 ignite.active(true);
             }
@@ -83,5 +90,15 @@ public class ServerNode {
         spi.setLocalPort(33333);
         spi.setLocalPortRange(6);
         cfg.setDiscoverySpi(spi);
+    }
+
+    @NotNull static CacheConfiguration<Object, Account> getAcntConfiguration() {
+        final CacheConfiguration<Object, Account> acntCcfg = new CacheConfiguration<>(ClientNode.ACCOUNT);
+        acntCcfg.setCacheMode(CacheMode.PARTITIONED);
+        acntCcfg.setAtomicityMode(CacheAtomicityMode.TRANSACTIONAL);
+        acntCcfg.setWriteSynchronizationMode(CacheWriteSynchronizationMode.PRIMARY_SYNC);
+        acntCcfg.setBackups(1);
+        acntCcfg.setIndexedTypes(Integer.class, Account.class);
+        return acntCcfg;
     }
 }
