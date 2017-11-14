@@ -22,10 +22,7 @@ public class ClientNode {
 
 
     public static void main(String[] args) throws Exception {
-        final IgniteConfiguration cfg = new IgniteConfiguration();
-        ServerNode.setupCustomIp(cfg);
-
-        ServerNode.setupLoadBalancing(cfg);
+        final IgniteConfiguration cfg = ServerNode.prepareIgniteConfiguration();
 
         cfg.setClientMode(true);
         try (final Ignite ignite = Ignition.start(cfg)) {
@@ -42,10 +39,10 @@ public class ClientNode {
             if (size >= COUNT)
                 System.err.println("Accounts cache size is " + size);
             else {
-                System.err.println("Accounts to be filled: " + size);
+                System.err.println("Accounts to be filled, currently have: " + size);
+                initialLoad(ignite);
             }
 
-            initialLoad(ignite);
 
             snapshotsDemo(snapshot);
 
