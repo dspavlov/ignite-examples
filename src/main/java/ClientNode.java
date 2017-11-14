@@ -1,30 +1,114 @@
 import java.io.IOException;
 import java.math.BigInteger;
+import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 import java.util.stream.LongStream;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
+import org.apache.ignite.IgniteDataStreamer;
 import org.apache.ignite.Ignition;
+import org.apache.ignite.cache.CacheAtomicityMode;
+import org.apache.ignite.cache.CacheMode;
+import org.apache.ignite.cache.CacheWriteSynchronizationMode;
 import org.apache.ignite.cluster.ClusterGroup;
+import org.apache.ignite.configuration.CacheConfiguration;
 import org.apache.ignite.configuration.IgniteConfiguration;
 import org.apache.ignite.lang.IgniteReducer;
-import org.apache.ignite.spi.loadbalancing.roundrobin.RoundRobinLoadBalancingSpi;
-import org.apache.ignite.spi.loadbalancing.weightedrandom.WeightedRandomLoadBalancingSpi;
+import org.gridgain.grid.GridGain;
+import org.gridgain.grid.persistentstore.GridSnapshot;
+import org.gridgain.grid.persistentstore.SnapshotFuture;
+import org.gridgain.grid.persistentstore.SnapshotInfo;
 import org.jetbrains.annotations.Nullable;
 
-import static org.apache.ignite.events.EventType.EVT_JOB_MAPPED;
-import static org.apache.ignite.events.EventType.EVT_NODE_JOINED;
-import static org.apache.ignite.events.EventType.EVT_TASK_FAILED;
-import static org.apache.ignite.events.EventType.EVT_TASK_FINISHED;
-
 /**
- * Created by dpavlov on 11.10.2017
+ *
  */
 public class ClientNode {
 
-    private static void runMapReduce(Ignite ignite) {
+    private static final int COUNT = 10000;
+    public static final String ACCOUNT = "Account";
+
+
+
+    public static void main(String[] args) throws Exception {
+        final IgniteConfiguration cfg = new IgniteConfiguration();
+        ServerNode.setupCustomIp(cfg);
+
+        ServerNode.setupLoadBalancing(cfg);
+
+        cfg.setClientMode(true);
+        try (final Ignite ignite = Ignition.start(cfg)) {
+
+            final GridGain gg = ignite.plugin(GridGain.PLUGIN_NAME);
+
+            final GridSnapshot snapshot = gg.snapshot();
+
+            final CacheConfiguration<Object, Object> acntCcfg = new CacheConfiguration<>(ACCOUNT);
+            acntCcfg.setCacheMode(CacheMode.PARTITIONED);
+            acntCcfg.setAtomicityMode(CacheAtomicityMode.TRANSACTIONAL);
+            acntCcfg.setWriteSynchronizationMode(CacheWriteSynchronizationMode.PRIMARY_SYNC);
+            acntCcfg.setBackups(1);
+
+            final IgniteCache<Object, Object> cache = ignite.getOrCreateCache(acntCcfg);
+
+            final int size = cache.size();
+            if (size >= COUNT)
+                System.err.println("Accounts cache size is " + size);
+            else {
+                System.err.println("Accounts to be filled: " + size);
+                initialLoad(ignite);
+            }
+
+            snapshotsDemo(snapshot);
+
+            System.out.println("Press any key to close client");
+            System.in.read();
+        }
+    }
+
+    private static void snapshotsDemo(GridSnapshot snapshot) {
+        long someSnId = -1;
+        final List<SnapshotInfo> infos = snapshot.listSnapshots(null);
+        for (SnapshotInfo next : infos) {
+            someSnId = next.snapshotId();
+            System.err.println("Snapshot found; " + someSnId);
+        }
+
+        if (someSnId <= 0) {
+            System.out.println("Starting snapshot for account cache...");
+            SnapshotFuture backupFut = snapshot.createFullSnapshot(
+                Collections.singleton(ACCOUNT), "Message from shapshots");
+
+            final Object o = backupFut.get();
+
+            System.err.println("Snapshot created: " + o);
+        }
+
+        boolean restore = true;
+        if (someSnId > 0 && restore) {
+            snapshot.restoreSnapshot(someSnId, null, null)
+                .get();
+            System.err.println("Restore snapshot finished");
+        }
+    }
+
+    private static void initialLoad(Ignite ignite) {
+        try (IgniteDataStreamer<Integer, Account> streamer = ignite.dataStreamer(ACCOUNT)) {
+            streamer.allowOverwrite(true);
+
+            for (int i = 0; i < COUNT; i++) {
+                streamer.addData(i, new Account(i, "Organization-" + i));
+
+                if (i > 0 && i % 1_000 == 0)
+                    System.out.println("Done: " + i);
+            }
+        }
+    }
+
+    /*
+     private static void runMapReduce(Ignite ignite) {
         final ClusterGroup grp = ignite.cluster().forServers();
         long base = 1_000_000_000;
         final List<BigInteger> parms = LongStream.range(base, base+10_000)
@@ -57,39 +141,28 @@ public class ClientNode {
         System.out.println("Sum of primaries " + res);
     }
 
-    public static void main(String[] args) throws IOException, InterruptedException {
-        final IgniteConfiguration cfg = new IgniteConfiguration();
-        ServerNode.setupCustomIp(cfg);
+     *
+     runMapReduce(ignite);
 
-        ServerNode.setupLoadBalancing(cfg);
+     final ClusterGroup grp = ignite.cluster().forServers().forRandom();
+     ignite.message(grp).send("OrderStreamer", "Start");
 
-        cfg.setClientMode(true);
-        try (final Ignite ignite = Ignition.start(cfg)) {
-            runMapReduce(ignite);
+     ignite.events().localListen(e->{
+     System.out.println("Node joined: " + e);
+     return true;
+     }, EVT_NODE_JOINED);
 
-            final ClusterGroup grp = ignite.cluster().forServers().forRandom();
-            ignite.message(grp).send("OrderStreamer", "Start");
+     final IgniteCache<Object, Object> orders = ignite.cache(ServerNode.ORDERS);
+     System.out.println("Cache size is " + orders.size());
 
-            ignite.events().localListen(e->{
-                System.out.println("Node joined: " + e);
-                return true;
-            }, EVT_NODE_JOINED);
+     for (int i = 0; i < 10; i++) {
+     Thread.sleep(1000);
+     final int size = orders.size();
+     System.out.println("Cache size is " + size);
+     if (size >= 1000000)
+     break;
+     }
 
-            final IgniteCache<Object, Object> orders = ignite.cache(ServerNode.ORDERS);
-            System.out.println("Cache size is " + orders.size());
-
-            for (int i = 0; i < 10; i++) {
-                Thread.sleep(1000);
-                final int size = orders.size();
-                System.out.println("Cache size is " + size);
-                if (size >= 1000000)
-                    break;
-            }
-
-
-            System.out.println("Press any key to close client");
-            System.in.read();
-        }
-    }
+     */
 
 }

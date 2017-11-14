@@ -1,3 +1,4 @@
+import java.io.File;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.concurrent.ThreadLocalRandom;
@@ -5,18 +6,22 @@ import java.util.stream.IntStream;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteDataStreamer;
 import org.apache.ignite.Ignition;
+import org.apache.ignite.cluster.ClusterNode;
 import org.apache.ignite.configuration.CacheConfiguration;
 import org.apache.ignite.configuration.IgniteConfiguration;
+import org.apache.ignite.configuration.PersistentStoreConfiguration;
 import org.apache.ignite.spi.discovery.tcp.TcpDiscoverySpi;
 import org.apache.ignite.spi.discovery.tcp.ipfinder.vm.TcpDiscoveryVmIpFinder;
 import org.apache.ignite.spi.loadbalancing.roundrobin.RoundRobinLoadBalancingSpi;
+import org.gridgain.grid.GridGain;
+import org.gridgain.grid.persistentstore.SnapshotFuture;
 
 import static org.apache.ignite.events.EventType.EVT_JOB_MAPPED;
 import static org.apache.ignite.events.EventType.EVT_TASK_FAILED;
 import static org.apache.ignite.events.EventType.EVT_TASK_FINISHED;
 
 /**
- * Created by dpavlov on 11.10.2017
+ *
  */
 public class ServerNode {
 
@@ -25,22 +30,25 @@ public class ServerNode {
 
     public static void main(String[] args) throws IOException {
         final IgniteConfiguration cfg = new IgniteConfiguration();
+        cfg.setWorkDirectory(new File("work").getAbsolutePath());
         setupCustomIp(cfg);
 
         setupLoadBalancing(cfg);
 
-        final CacheConfiguration ccfg = new CacheConfiguration();
-        ccfg.setName(ORDERS);
-        cfg.setCacheConfiguration(ccfg);
+        cfg.setPersistentStoreConfiguration(new PersistentStoreConfiguration());
 
         try (final Ignite ignite = Ignition.start(cfg)) {
+            if ((long)ignite.cluster().forServers().nodes().size() >= 2) {
+                System.err.println("Activating cluster");
+                ignite.active(true);
+            }
 
             ignite.message(ignite.cluster().forRemotes()).localListen(
-               ORDER_STREAMER_TOPIC, (uuid, e)->{
+                ORDER_STREAMER_TOPIC, (uuid, e) -> {
                     initialLoad(ignite);
                     return false; // stop listening
                 });
-            System.out.println("Press any key to shutdown server");
+            System.out.println("Press any key to shutdown server, " + ignite.cluster().localNode().consistentId());
             System.in.read();
         }
     }

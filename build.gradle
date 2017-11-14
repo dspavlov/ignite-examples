@@ -6,10 +6,24 @@ sourceCompatibility = 1.8
 
 repositories {
     mavenCentral()
+    maven {
+        url 'http://www.gridgainsystems.com/nexus/content/repositories/external'
+    }
 }
 
 dependencies {
     testCompile group: 'junit', name: 'junit', version: '4.12'
 
-    compile group: 'org.apache.ignite', name: 'ignite-core', version: '2.2.0'
+    def ggVer = '8.1.6'
+    def ignVer = '2.1.6'
+
+    // Add  this dependency to use GridGain Ultimate Edition features.
+    compile group: 'org.gridgain', name: 'gridgain-core', version: ggVer
+
+    // Add  this dependency to use GridGain Ultimate Edition features.
+    compile group: 'org.gridgain', name: 'gridgain-ultimate', version: ggVer
+
+    compile group: 'org.apache.ignite', name: 'ignite-core', version: ignVer
+    compile group: 'org.apache.ignite', name: 'ignite-spring', version: ignVer
+    compile group: 'org.apache.ignite', name: 'ignite-indexing', version: ignVer
 }
