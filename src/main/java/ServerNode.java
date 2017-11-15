@@ -37,6 +37,8 @@ public class ServerNode {
         cfg.setWorkDirectory(new File("work").getAbsolutePath());
         setupCustomIp(cfg);
 
+        cfg.setPeerClassLoadingEnabled(true);
+
         setupLoadBalancing(cfg);
 
         cfg.setCacheConfiguration(getAcntConfiguration());
@@ -100,5 +102,15 @@ public class ServerNode {
         acntCcfg.setBackups(1);
         acntCcfg.setIndexedTypes(Integer.class, Account.class);
         return acntCcfg;
+    }
+
+    @NotNull public static IgniteConfiguration prepareIgniteConfiguration() {
+        final IgniteConfiguration cfg = new IgniteConfiguration();
+        setupCustomIp(cfg);
+
+        cfg.setPeerClassLoadingEnabled(true);
+
+        setupLoadBalancing(cfg);
+        return cfg;
     }
 }
