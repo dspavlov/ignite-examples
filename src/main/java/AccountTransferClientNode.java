@@ -52,6 +52,10 @@ public class AccountTransferClientNode {
 
             @Override public void run() {
                 final int acntCnt = accounts.size() * 2;
+                if (acntCnt == 0) {
+                    System.err.println("No Account found in the system, can't start acnt transfer");
+                    return;
+                }
                 while (!cancel.get()) {
                     boolean pause = false;
                     if (pause) {
@@ -59,7 +63,9 @@ public class AccountTransferClientNode {
                             Thread.sleep(50);
                         }
                         catch (InterruptedException e) {
+                            Thread.currentThread().interrupt();
                             e.printStackTrace();
+                            return;
                         }
                     }
 
