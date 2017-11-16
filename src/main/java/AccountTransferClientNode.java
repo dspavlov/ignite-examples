@@ -40,7 +40,7 @@ public class AccountTransferClientNode {
         Thread t = new Thread(new Runnable() {
             private void transfer(Account a1, Account a2) {
                 long amount = (long)(rnd.nextInt(10000));
-                if (a1.getBalance() > amount) {
+                if (a1.getBalance() >= amount) {
                     long tm = System.currentTimeMillis();
                     a1.setBalance(a1.getBalance()-amount);
                     a2.setBalance(a2.getBalance()+amount);
@@ -102,9 +102,8 @@ public class AccountTransferClientNode {
                             tx.commit();
                             log("Tx commit: " + k1 + "->" + k2);
                         }
-                        else {
+                        else
                             tx.rollback();
-                        }
                     }
                     catch (Throwable e) {
                         cancel.set(true);
