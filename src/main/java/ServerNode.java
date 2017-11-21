@@ -7,6 +7,8 @@ import org.apache.ignite.IgniteDataStreamer;
 import org.apache.ignite.Ignition;
 import org.apache.ignite.configuration.CacheConfiguration;
 import org.apache.ignite.configuration.IgniteConfiguration;
+import org.apache.ignite.events.CacheEvent;
+import org.apache.ignite.events.EventType;
 import org.apache.ignite.spi.discovery.tcp.TcpDiscoverySpi;
 import org.apache.ignite.spi.discovery.tcp.ipfinder.vm.TcpDiscoveryVmIpFinder;
 import org.apache.ignite.spi.loadbalancing.roundrobin.RoundRobinLoadBalancingSpi;
@@ -34,6 +36,13 @@ public class ServerNode {
         cfg.setCacheConfiguration(ccfg);
 
         try (final Ignite ignite = Ignition.start(cfg)) {
+            ignite.events().localListen(evt -> {
+                final CacheEvent evt1 = (CacheEvent)evt;
+                final Object key = evt1.key();
+                System.out.println("expired key " + key);
+                //do processing
+                return true;
+            }, EventType.EVT_CACHE_OBJECT_EXPIRED);
 
             ignite.message(ignite.cluster().forRemotes()).localListen(
                ORDER_STREAMER_TOPIC, (uuid, e)->{
